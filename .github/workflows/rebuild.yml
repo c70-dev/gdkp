@@ -1,0 +1,49 @@
+name: "Rebuild All Garguls"
+on:
+  repository_dispatch:
+  workflow_dispatch:
+permissions:
+  contents: write
+
+jobs:
+  Dorebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v28
+        with:
+          nix_conf: |
+            build-users-group =
+            experimental-features = nix-command flakes
+
+      - name: Install Python
+        run: |
+          nix-env -iA python311 -f https://github.com/tywtyw2002/nx-direct/tarball/nx
+
+      - name: Checkout store
+        uses: actions/checkout@v4
+        with:
+          path: ./store
+          ref: store
+
+      - name: Checkout build_dst
+        uses: actions/checkout@v4
+        with:
+          path: ./dest
+          ref: public
+
+      - name: Rebuild
+        run: |
+          rm -rf ./dest/records
+          python3.11 ./ci.py --rebuild -r ./store/current -d ./dest
+
+      - name: Push to nx
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dest
+          branch: public
+          clean: true
+          single-commit: true
+
