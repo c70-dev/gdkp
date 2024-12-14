@@ -1,12 +1,14 @@
-name: "Rebuild All Garguls"
+name: Pull Request Action
 on:
-  repository_dispatch:
-  workflow_dispatch:
+  push:
+    branches:
+      - a/*
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  Dorebuild:
+  AddRecord:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,10 +36,15 @@ jobs:
           path: ./dest
           ref: public
 
-      - name: Rebuild
+      - name: Add record
         run: |
-          rm -rf ./dest/records
-          python3.11 ./ci.py --rebuild -r ./store/current -d ./dest
+          python3.11 ./ci.py --addjson -a ./ -r ./store/current -d ./dest
+
+      - name: Close PR
+        run: |
+          gh pr close --comment "Auto-closing pull request" --delete-branch "1"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push to public
         uses: JamesIves/github-pages-deploy-action@v4
@@ -46,4 +53,10 @@ jobs:
           branch: public
           clean: true
           single-commit: true
+
+      - name: Push to store
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: store
+          branch: store
 
