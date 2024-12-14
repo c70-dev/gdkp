@@ -40,9 +40,11 @@ jobs:
         run: |
           python3.11 ./ci.py --addjson -a ./ -r ./store/current -d ./dest
 
-      - name: Close PR
+      - name: Delete branch
         run: |
-          gh pr close --comment "Auto-closing pull request" --delete-branch "1"
+          # echo ${{ github.ref }}
+          # echo ${{ github.ref_name }}
+          gh api --method DELETE "repos/${{ github.repository }}/git/refs/heads/${{ github.ref_name }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
