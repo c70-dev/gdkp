@@ -278,7 +278,6 @@ def do_rebuild(root_path: Path, dest_path: Path):
         return
 
     json_dest = dest_path / "records"
-    # shutil.rmtree(json_dest)
     json_dest.mkdir(exist_ok=True)
 
     # create index
@@ -294,10 +293,38 @@ def do_rebuild(root_path: Path, dest_path: Path):
     gindex.dump()
     print("  [!] Done.")
 
+
+def do_add( add_path: Path, root_path: Path, dest_path: Path):
+    print("[*] Add Json from Pull requests...")
+    if not add_path.exists() or not root_path.exists() or not dest_path.exists():
+        print("  [!] Some Path not found.")
+        return
+
+    json_dest = dest_path / "records"
+
+    gindex = IndexReader(dest_path / "index.json")
+    gindex.load()
+
+    # try to find json file in root.
+    for record in add_path.glob("*.json"):
+        print("  + Processing:", record.name)
+        g = GDKPReader.read_file(record)
+        gindex.add_index(g.to_index())
+        with open(json_dest / f"{g.instance.uid}.json", "w") as f:
+            json.dump(g.instance.warp(), f)
+
+        # copy file to root_path
+        shutil.copy(record, root_path / record.name)
+
+    gindex.dump()
+    print("  [!] Done.")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--add', action='store_true')
     parser.add_argument('--rebuild', action='store_true')
+    parser.add_argument('--addjson', action='store_true')
+    parser.add_argument('-a', '--add-path', type=Path)
     parser.add_argument('-r', '--root-path', type=Path)
     parser.add_argument('-d', '--dest-path', type=Path)
 
@@ -305,6 +332,8 @@ def main():
 
     if args.rebuild:
         do_rebuild(args.root_path, args.dest_path)
+    elif args.addjson:
+        do_add(args.add_path, args.root_path, args.dest_path)
 
 if __name__ == "__main__":
     main()
